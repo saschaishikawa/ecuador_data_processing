@@ -4,7 +4,7 @@
   "description": "Provides scripts to process pre- and post-earthquake satellite images from Digital Globe's S3 bucket (s3://ecuador-earthquake)",
   "main": "index.js",
   "scripts": {
-    "run": "node index.js"
+    "start": "node index.js"
   },
   "author": "",
   "license": "ISC",

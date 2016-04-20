@@ -56,7 +56,7 @@ getXMLFileList( function(err, list) {
         for(var field of tokenizedData) {
           data[field.split('=')[0]] = field.split('=')[1];
         }
-        console.log('data.LLLat = ', data.LLLat);
+        // console.log('data.LLLat = ', data.LLLat);
         // I THINK THIS IS INCCORRECT
         if(data.LLLon < ll_lon && data.LRLlon > lr_lon && data.ULLat < ul_lat && data.LLLat > ll_lat) {
           console.log('DATA IS WITHIN AOI: ', data);
