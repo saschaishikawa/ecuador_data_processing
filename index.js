@@ -1,3 +1,8 @@
+/* DESCRIPTION:
+ * Downloads all available TIL files, checks upper-left coordinate to see if it lies within AOI
+ * If inside AOI, the corresponding TIF file will be downloaded
+ */
+
 const AWS = require('aws-sdk');
 const downloadFromS3 = require('./lib/download-from-s3');
 const path = require('path');
@@ -23,32 +28,26 @@ const s3 = new AWS.S3({
 //   // something went wrong
 // });
 
-// /* COMMENT FOR NOW */
-// console.log('Fetching TIL files...');
-// var key ='post-event/055228066010_01/055228066010_01_P001_MUL/16APR17160138-M1BS-055228066010_01_P001.XML';
-// var dest = './data/'+path.basename(key);
-// downloadFromS3(s3, bucket, key, dest, function(err, result) {
-//   console.log('DONE.', result);
-// });
 
-/* ROUGH AOI */
-ll_lat = 1.476725;  // 1°28'36.21"S
-ll_lon = 80.871139; // 80°52'16.10"W
+/* ROUGH AOI (BOUNDING BOX) */
+var lr_x = -79.15512760846489;
+var lr_y = -1.526809919837065;
 
-ul_lat = 0.984122;  // 0°59'2.84"N
-ul_lon = 81.404308; // 81°24'15.51"W
+var ur_x = -79.15512760846489;
+var ur_y = 0.8982400203432694;
 
-ur_lat = 1.049642;  // 1° 2'58.71"N
-ur_lon = 79.247589; // 79°14'51.32"W
+var ul_x = -81.07410268303428;
+var ul_y = 0.8982400203432694;
 
-lr_lat = 1.457114;  // 1°27'25.61"S
-lr_lon = 79.419639; // 79°25'10.70"W
+var ll_x = -81.07410268303428;
+var ll_y = -1.526809919837065;
 
 
 getXMLFileList( function(err, list) {
+
   async.mapSeries(list, function(file, callback) {
     var key = file.Prefix;
-    console.log('Downloading TIL file ', key);
+    console.log('Downloading TIL file %s', key);
     downloadFromS3(s3, bucket, key, `./data/${path.basename(key)}`, function(err, result) {
 
         var tokenizedData = result.httpResponse.body.toString().replace(/\t/g,'').replace(/;/g, '').replace(/ /g,'').split(/\r?\n/);
@@ -56,11 +55,22 @@ getXMLFileList( function(err, list) {
         for(var field of tokenizedData) {
           data[field.split('=')[0]] = field.split('=')[1];
         }
-        // console.log('data.LLLat = ', data.LLLat);
-        // I THINK THIS IS INCCORRECT
-        if(data.LLLon < ll_lon && data.LRLlon > lr_lon && data.ULLat < ul_lat && data.LLLat > ll_lat) {
-          console.log('DATA IS WITHIN AOI: ', data);
+
+        // check if "upper-left" point lies within AOI
+        var y = data.ULLat;
+        var x = data.ULLon;
+        if( y <= ur_y && y >= lr_y ) {
+          if( x <= ur_x && x >= ul_x ) {
+            console.log('Found image within AOI: %s', key);
+            console.log('Downloading corresponding GeoTIF file...', `${path.dirname(key)}/${path.basename(key,'.TIL')}.TIF`);
+            downloadFromS3(s3, bucket, `${path.dirname(key)}/${path.basename(key,'.TIL')}.TIF`, `./data/${path.basename(key,'.TIL')}.TIF`, function(err, result) {
+              if(err) throw err;
+              console.log('Finished downloading file %s', key);
+            });
+
+          }
         }
+
 
         callback(err, data);
     });
@@ -74,7 +84,7 @@ function getXMLFileList(callback) {
   var params = {
     Bucket: bucket,
     EncodingType: 'url',
-    Prefix: 'pre-event',
+    Prefix: 'post-event', // Note: change to 'pre-event' to retrieve images from before the quake
     Delimiter: '.TIL'
   }
   s3.listObjects( params, function(err, data) {
