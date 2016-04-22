@@ -7,7 +7,7 @@ const AWS = require('aws-sdk');
 const downloadFromS3 = require('./lib/download-from-s3');
 const path = require('path');
 const fs = require('fs');
-// const readline = require('linebyline');
+const readline = require('linebyline');
 const async = require('async');
 
 const bucket = 'ecuador-earthquake';
@@ -16,17 +16,22 @@ const s3 = new AWS.S3({
   region: region,
   endpoint: 's3.amazonaws.com'
 });
+const dest = './data';
+const argv = require('yargs').argv;
 
-//
-// var rl = readline('./file_manifest.txt'),
-//     downloadList = [];
-// rl.on('line', function(line, lineCount, byteCount) {
-//   var file = require('fs').createWriteStream(dest);
-//   s3.getObject({ Bucket: bucket, Key: line}).createReadStream().pipe(file);
-// })
-// .on('error', function(e) {
-//   // something went wrong
-// });
+// Download files
+if (argv.downloadFiles) {
+  var rl = readline('./file_manifest.txt'),
+      downloadList = [];
+  rl.on('line', function(line, lineCount, byteCount) {
+    console.log(line)
+    var file = require('fs').createWriteStream(path.join(dest, path.basename(line)));
+    s3.getObject({ Bucket: bucket, Key: line}).createReadStream().pipe(file);
+  })
+  .on('error', function(e) {
+    // something went wrong
+  });
+}
 
 
 /* ROUGH AOI (BOUNDING BOX) */
